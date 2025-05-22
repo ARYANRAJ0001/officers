@@ -5,6 +5,13 @@ require('dotenv').config();
 
 const app = express();
 const PORT = 3001;
+app.use(
+  cors({
+    origin: 'https://officers-5.onrender.com', // Your frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+    credentials: true // Allow cookies/authentication headers
+  })
+);
 
 // Middleware
 app.use(cors());
