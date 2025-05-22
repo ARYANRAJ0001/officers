@@ -1,62 +1,74 @@
+// Import dependencies
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+// Initialize express app
 const app = express();
-const PORT = 3001;
+
+// Use environment variable PORT or fallback to 3001
+const PORT = process.env.PORT || 3001;
+
+// CORS middleware: allow requests only from your frontend domain
 app.use(
   cors({
-    origin: 'https://officers-5.onrender.com', // Your frontend URL
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-    credentials: true // Allow cookies/authentication headers
+    origin: 'https://officers-5.onrender.com', // your frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: false, // set true only if you use cookies/auth
   })
 );
 
-// Middleware
-app.use(cors());
+// Middleware to parse JSON request bodies
 app.use(express.json());
 
-// POST route for form submission
+// POST endpoint to receive form submissions
 app.post('/submit-form', async (req, res) => {
-    const { name, parent, phone, email, class: studentClass, message } = req.body;
+  // Destructure data from request body
+  const { name, parent, phone, email, class: studentClass, message } = req.body;
 
-    if (!name || !parent || !phone || !studentClass) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
+  // Validate required fields
+  if (!name || !parent || !phone || !studentClass) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
 
-    try {
-        // Setup nodemailer transporter
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER, // Your Gmail address
-                pass: process.env.EMAIL_PASS  // Your Gmail app password
-            }
-        });
+  try {
+    // Create a nodemailer transporter using Gmail SMTP
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER, // Your Gmail email address
+        pass: process.env.EMAIL_PASS, // Your Gmail app password
+      },
+    });
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_RECEIVER || process.env.EMAIL_USER, // where to receive form submissions
-            subject: 'New Admission Enquiry',
-            text: `
-                Student's Name: ${name}
-                Parent's Name: ${parent}
-                Phone: ${phone}
-                Email: ${email || 'N/A'}
-                Class: ${studentClass}
-                Message: ${message || 'N/A'}
-            `
-        };
+    // Setup email options
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_RECEIVER || process.env.EMAIL_USER,
+      subject: 'New Admission Enquiry',
+      text: `
+Student's Name: ${name}
+Parent's Name: ${parent}
+Phone: ${phone}
+Email: ${email || 'N/A'}
+Class: ${studentClass}
+Message: ${message || 'N/A'}
+      `,
+    };
 
-        await transporter.sendMail(mailOptions);
-        res.status(200).json({ message: 'Enquiry submitted successfully' });
-    } catch (error) {
-        console.error('Error sending email:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    // Respond success to frontend
+    res.status(200).json({ message: 'Enquiry submitted successfully' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
+// Start the server
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
