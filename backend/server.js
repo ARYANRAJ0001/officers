@@ -2,81 +2,90 @@ const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const helmet = require('helmet');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS middleware setup
+// Enhanced security middleware
+app.use(helmet());
 app.use(cors({
-  origin: '*', // Change this to your frontend domain in production
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000', // More secure CORS configuration
   methods: ['GET', 'POST'],
   credentials: true
 }));
 
-// Middleware for parsing JSON and serving static files
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Improved body parsing and static serving
+app.use(express.json({ limit: '10kb' }));
+app.use(express.static(path.join(__dirname, '../officeracademy/build'))); // Adjusted path for React build
 
-// POST route to handle form submissions
-app.post('/submit-form', async (req, res) => {
-  console.log('Received form data:', req.body);
+// Email transporter configuration
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
-  const { name, parent, phone, email, class: studentClass, message } = req.body;
+// Enhanced form validation middleware
+const validateFormData = (req, res, next) => {
+  const { name, parent, phone, class: studentClass } = req.body;
+  const phoneRegex = /^[0-9]{10}$/;
 
-  // Validate required fields
   if (!name || !parent || !phone || !studentClass) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: 'All required fields must be filled' });
   }
 
+  if (!phone.match(phoneRegex)) {
+    return res.status(400).json({ error: 'Invalid phone number format' });
+  }
+
+  next();
+};
+
+// POST route with improved validation and email template
+app.post('/submit-form', validateFormData, async (req, res) => {
   try {
-    // Create transporter with Gmail service
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER, // Your Gmail address
-        pass: process.env.EMAIL_PASS  // Your Gmail app password
-      }
-    });
+    const { name, parent, phone, email, class: studentClass, message } = req.body;
 
-    // Verify transporter configuration
-    await transporter.verify();
-    console.log('Nodemailer transporter verified and ready');
-
-    // Email options
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_RECEIVER || process.env.EMAIL_USER,
+      from: `"Officer Academy" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_RECEIVER,
       subject: 'New Admission Enquiry',
-      text: `
-Student's Name: ${name}
-Parent's Name: ${parent}
-Phone: ${phone}
-Email: ${email || 'N/A'}
-Class: ${studentClass}
-Message: ${message || 'N/A'}
+      html: `
+        <h3>New Admission Enquiry</h3>
+        <p><strong>Student's Name:</strong> ${name}</p>
+        <p><strong>Parent's Name:</strong> ${parent}</p>
+        <p><strong>Phone:</strong> ${phone}</p>
+        <p><strong>Email:</strong> ${email || 'N/A'}</p>
+        <p><strong>Class:</strong> ${studentClass}</p>
+        ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
+        <hr>
+        <p>Sent from Officer Academy website</p>
       `
     };
 
-    // Send the email
     await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully');
-
-    // Respond success to frontend
     res.status(200).json({ message: 'Enquiry submitted successfully' });
 
   } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
-// Handle all other routes by serving the frontend
+// Serve React frontend
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, '../officeracademy/build', 'index.html'));
 });
 
-// Start server
+// Server initialization
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
