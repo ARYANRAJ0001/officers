@@ -9,6 +9,10 @@ const PORT = 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.get('/', (req, res) => {
+  res.send('Backend is running');
+});
+
 
 // POST route for form submission
 app.post('/submit-form', async (req, res) => {
