@@ -1,23 +1,22 @@
-// server.js
-
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // CORS middleware setup
-// For production, replace '*' with your frontend domain like 'https://officers-5.onrender.com'
 app.use(cors({
   origin: '*', // Change this to your frontend domain in production
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST'],
   credentials: true
 }));
 
-// Parse incoming JSON requests
+// Middleware for parsing JSON and serving static files
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // POST route to handle form submissions
 app.post('/submit-form', async (req, res) => {
@@ -36,7 +35,7 @@ app.post('/submit-form', async (req, res) => {
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER, // Your Gmail address
-        pass: process.env.EMAIL_PASS  // Your Gmail app password (NOT your Gmail password)
+        pass: process.env.EMAIL_PASS  // Your Gmail app password
       }
     });
 
@@ -47,7 +46,7 @@ app.post('/submit-form', async (req, res) => {
     // Email options
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_RECEIVER || process.env.EMAIL_USER, // Receiver email address
+      to: process.env.EMAIL_RECEIVER || process.env.EMAIL_USER,
       subject: 'New Admission Enquiry',
       text: `
 Student's Name: ${name}
@@ -70,6 +69,11 @@ Message: ${message || 'N/A'}
     console.error('Error sending email:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Handle all other routes by serving the frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start server
