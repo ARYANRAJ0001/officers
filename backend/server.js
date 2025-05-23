@@ -9,7 +9,9 @@ const PORT = 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
-
+app.use(cors({
+  origin: 'https://officers-6da.onrender.com' // Replace with your actual URL
+}));
 // POST route for form submission
 app.post('/submit-form', async (req, res) => {
     const { name, parent, phone, email, class: studentClass, message } = req.body;
