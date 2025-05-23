@@ -473,16 +473,12 @@
       };
 
       try {
-        const response = await fetch(
-          'https://officers-6v.onrender.com/',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData),
-          }
-        );
+     const response = await fetch('https://officers-6nn.onrender.com/', {  // <-- updated
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(formData),
+});
+
 
         if (response.ok) {
           alert('Thank you! Your enquiry has been submitted.');
