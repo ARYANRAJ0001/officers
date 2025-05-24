@@ -306,55 +306,59 @@
         </div>
     </div>
 
+
     <script>
         function openForm() {
             document.getElementById('enquiryModal').style.display = 'block';
         }
-
+    
         function closeForm() {
             document.getElementById('enquiryModal').style.display = 'none';
         }
-
+    
         window.onclick = function(event) {
             const modal = document.getElementById('enquiryModal');
-            if (event.target == modal) {
+            if (event.target === modal) {
                 closeForm();
             }
         }
-
-        async function submitForm(event) {
-            event.preventDefault();
-            
-            const formData = {
-                name: document.getElementById('name').value,
-                parent: document.getElementById('parent').value,
-                phone: document.getElementById('phone').value,
-                email: document.getElementById('email').value,
-                class: document.getElementById('class').value,
-                message: document.getElementById('message').value
-            };
-
-            try {
-               const response = await fetch('/submit-form', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                if (response.ok) {
-                    alert('Thank you! Your enquiry has been submitted.');
-                    closeForm();
-                    event.target.reset();
-                } else {
-                    throw new Error('Submission failed');
+        
+            const baseUrl = window.location.origin;
+        
+            async function submitForm(event) {
+                event.preventDefault();
+        
+                const formData = {
+                    name: document.getElementById('name').value,
+                    parent: document.getElementById('parent').value,
+                    phone: document.getElementById('phone').value,
+                    email: document.getElementById('email').value,
+                    class: document.getElementById('class').value,
+                    message: document.getElementById('message').value
+                };
+        
+                try {
+                    const response = await fetch(`${baseUrl}/submit-form`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+        
+                    if (response.ok) {
+                        alert('Thank you! Your enquiry has been submitted.');
+                        closeForm();
+                        event.target.reset();
+                    } else {
+                        throw new Error('Submission failed');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Submission failed. Please try again.');
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Submission failed. Please try again.');
             }
-        }
-    </script>
+        </script>
+        
 </body>
 </html>
